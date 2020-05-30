@@ -1,5 +1,5 @@
 package = "wLuaUnit"
-version = "0.0.1-1"
+version = "0.0.2-1"
 
 description = {
   summary = "Object oriented test framework for Lua",
@@ -16,13 +16,14 @@ description = {
 
 source = {
   url = "git+https://github.com/wesen1/wLuaUnit.git",
-  tag = "v0.0.1"
+  tag = "v0.0.2"
 }
 
 dependencies = {
   "lua >= 5.1",
   "luaunit >= 3.3-1",
-  "mach >= 5.1-0"
+  "mach >= 5.1-0",
+  "classic = 0.1.0-1"
 }
 
 build = {
