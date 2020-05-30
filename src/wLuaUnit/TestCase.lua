@@ -113,6 +113,32 @@ end
 -- Public Methods
 
 ---
+-- Creates and returns a class that inherits from TestCase.
+-- Also copies all "test*" methods to the class so that LuaUnit can find these methods in the child class.
+--
+-- @treturn TestCase The created class
+--
+function TestCase:extend()
+
+  local class
+  if (self.super == TestCase) then
+    class = Object.extend(self)
+  else
+    class = self.super.extend(self)
+  end
+
+  for key, value in pairs(self) do
+    if (key:match("^test.+") and type(value) == "function") then
+      class[key] = value
+    end
+  end
+
+  return class
+
+end
+
+
+---
 -- Method that is called before a test is executed.
 -- Initializes the dependency mocks and loads the test class.
 --
