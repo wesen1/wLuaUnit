@@ -204,13 +204,7 @@ function TestCase:getMock(_mockTarget, _mockName, _mockType)
 
   local mockTarget
   if (type(_mockTarget) == "string") then
-
-    if (self.originalDependencies[_mockTarget]) then
-      mockTarget = self.originalDependencies[_mockTarget]
-    else
-      mockTarget = require(_mockTarget)
-    end
-
+    mockTarget = self:loadClass(_mockTarget)
   else
     mockTarget = _mockTarget
   end
@@ -220,6 +214,37 @@ function TestCase:getMock(_mockTarget, _mockName, _mockType)
   elseif (_mockType == "table") then
     return mach.mock_table(mockTarget, _mockName)
   end
+
+end
+
+---
+-- Returns a callable class mock.
+--
+-- @tparam string|table _class The class to mock
+-- @tparam string _mockName The name of the mock
+--
+-- @treturn table The mock of the class
+--
+function TestCase:createClassMock(_class, _mockName)
+
+  local class
+  if (type(_class) == "string") then
+    class = self:loadClass(_class)
+  else
+    class = _class
+  end
+
+  local classMock = self:getMock(class, _mockName, "object")
+  if (classMock.__call == nil) then
+    classMock.__call = self.mach.mock_method("__call")
+  end
+
+  return setmetatable({}, {
+    __call = function(...)
+      return classMock.__call(...)
+    end,
+    __index = classMock
+  })
 
 end
 
@@ -263,6 +288,25 @@ function TestCase:restoreOriginalDependencies()
 end
 
 ---
+-- Loads a class by its require path.
+-- If the class was replaced by a mock it will be loaded from the backed up original dependencies list.
+-- Otherwise it will be required.
+--
+-- @tparam string _classRequirePath The require path of the class to load
+--
+-- @treturn Object|nil The class or nil if the class was not found
+--
+function TestCase:loadClass(_classRequirePath)
+
+  if (self.originalDependencies[_classRequirePath]) then
+    return self.originalDependencies[_classRequirePath]
+  else
+    return require(_classRequirePath)
+  end
+
+end
+
+---
 -- Initializes the mocks for the test class dependencies.
 --
 function TestCase:initializeDependencyMocks()
@@ -284,13 +328,13 @@ function TestCase:initializeDependencyMocks()
       dependency = require(dependencyPath)
     end
 
-    local dependencyMock, injectValue = self:getDependencyMock(dependency, dependencyId, dependencyType)
+    local dependencyMock = self:getDependencyMock(dependency, dependencyId, dependencyType)
 
     -- Replace the dependency by the mock
     if (dependencyType == "globalVariable") then
-      _G[dependencyPath] = injectValue
+      _G[dependencyPath] = dependencyMock
     else
-      package.loaded[dependencyPath] = injectValue
+      package.loaded[dependencyPath] = dependencyMock
     end
 
     -- Save the mock to be able to use it in the tests
@@ -310,7 +354,6 @@ end
 -- @tparam string _dependencyType The dependency type
 --
 -- @treturn table The mock for the depedency
--- @treturn table The mock to insert into the loaded packages list or the global table
 --
 function TestCase:getDependencyMock(_dependency, _dependencyId, _dependencyType)
 
@@ -319,22 +362,11 @@ function TestCase:getDependencyMock(_dependency, _dependencyId, _dependencyType)
     dependencyType = "table"
   end
 
-  local dependencyMock = self:getMock(_dependency, _dependencyId .. "Mock", dependencyType)
-
-  local injectValue
   if (dependencyType == "object") then
-    injectValue = setmetatable({}, {
-        __call = function(...)
-          return dependencyMock.__call(...)
-        end,
-        __index = dependencyMock
-    })
+    return self:createClassMock(_dependency, _dependencyId .. "Mock")
   else
-    injectValue = dependencyMock
+    return self:getMock(_dependency, _dependencyId .. "Mock", dependencyType)
   end
-
-
-  return dependencyMock, injectValue
 
 end
 
