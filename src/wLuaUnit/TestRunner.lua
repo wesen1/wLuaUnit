@@ -77,12 +77,14 @@ function TestRunner:requireTestsRecursive(_testDirectoryPath)
         self:requireTestsRecursive(filePath)
       elseif (fileName:match("^Test.+%.lua$")) then
 
-        local className = fileName:gsub("%.lua$", "")
+        -- Use the entire file path as variable name so that tests with the same name
+        -- but in different directories are all loaded as expected
+        local globalVariableName = "Test" .. filePath:gsub("%.lua$", "")
         local classRequirePath = filePath:gsub("%.lua$", "")
 
-        -- Add the class to the "globals" table because luaunit will only execute test functions that
+        -- Add the class to the "globals" table because LuaUnit will only execute test functions that
         -- start with "test" and that it finds inside that table
-        _G[className] = require(classRequirePath)
+        _G[globalVariableName] = require(classRequirePath)
 
       end
 
