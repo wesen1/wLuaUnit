@@ -21,12 +21,22 @@ local TestRunner = Object:extend()
 -- Adds a test directory to load tests from to this TestRunner.
 --
 -- @tparam string _directoryPath The directory path to add
+-- @tparam string[] _excludePatterns The patterns for files to ignore inside the directory (optional)
 --
 -- @treturn TestRunner The TestRunner instance to allow chaining other method calls
 --
-function TestRunner:addTestDirectory(_directoryPath)
-  self:requireTestsRecursive(_directoryPath)
+function TestRunner:addTestDirectory(_directoryPath, _excludePatterns)
+
+  local excludePatterns
+  if (type(_excludePatterns) == "table") then
+    excludePatterns = _excludePatterns
+  else
+    excludePatterns = {}
+  end
+
+  self:requireTestsRecursive(_directoryPath, excludePatterns)
   return self
+
 end
 
 ---
@@ -63,28 +73,41 @@ end
 -- Requires all unit test lua files from a specified directory recursively.
 --
 -- @tparam string _testDirectoryPath The path to the directory relative from the entry point file's directory
+-- @tparam string[] _excludePatterns The patterns for files to ignore inside the directory
 --
-function TestRunner:requireTestsRecursive(_testDirectoryPath)
+function TestRunner:requireTestsRecursive(_testDirectoryPath, _excludePatterns)
 
   for fileName in lfs.dir(_testDirectoryPath) do
 
     if (fileName ~= "." and fileName ~= "..") then
 
       local filePath = _testDirectoryPath .. "/" .. fileName
-      local fileAttributes = lfs.attributes(filePath)
+      local filePathMatchesExcludePattern = false
+      for _, excludePattern in ipairs(_excludePatterns) do
+        if (filePath:match(excludePattern)) then
+          filePathMatchesExcludePattern = true
+          break
+        end
+      end
 
-      if (fileAttributes.mode == "directory") then
-        self:requireTestsRecursive(filePath)
-      elseif (fileName:match("^Test.+%.lua$")) then
+      if (not filePathMatchesExcludePattern) then
 
-        -- Use the entire file path as variable name so that tests with the same name
-        -- but in different directories are all loaded as expected
-        local globalVariableName = "Test" .. filePath:gsub("%.lua$", "")
-        local classRequirePath = filePath:gsub("%.lua$", "")
+        local fileAttributes = lfs.attributes(filePath)
 
-        -- Add the class to the "globals" table because LuaUnit will only execute test functions that
-        -- start with "test" and that it finds inside that table
-        _G[globalVariableName] = require(classRequirePath)
+        if (fileAttributes.mode == "directory") then
+          self:requireTestsRecursive(filePath, _excludePatterns)
+        elseif (fileName:match("^Test.+%.lua$")) then
+
+          -- Use the entire file path as variable name so that tests with the same name
+          -- but in different directories are all loaded as expected
+          local globalVariableName = "Test" .. filePath:gsub("%.lua$", "")
+          local classRequirePath = filePath:gsub("%.lua$", "")
+
+          -- Add the class to the "globals" table because LuaUnit will only execute test functions that
+          -- start with "test" and that it finds inside that table
+          _G[globalVariableName] = require(classRequirePath)
+
+        end
 
       end
 
