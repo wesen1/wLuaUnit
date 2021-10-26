@@ -35,6 +35,7 @@ TestCase.testClass = nil
 -- The paths of the classes that the test class depends on
 -- The list must be in the format { { id = <string>, path = <string>, [type = "object"|"table"|"globalVariable"] }, ... }
 -- Every dependency will be mocked during each test's setup
+-- TODO: Allow setting globalVariable values by adding a value field here, e.g. _G.UnitTestsRunning = false
 --
 -- @tfield table[] dependencyPaths
 --
@@ -236,6 +237,7 @@ function TestCase:createClassMock(_class, _mockName)
 
   local classMock = self:getMock(class, _mockName, "object")
   if (classMock.__call == nil) then
+    -- TODO: Should modify metatable of mock instead?
     classMock.__call = self.mach.mock_method(_mockName .. ".__call")
   end
 
