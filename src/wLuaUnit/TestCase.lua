@@ -320,15 +320,27 @@ function TestCase:initializeDependencyMocks()
     local dependencyPath = dependencyInfo["path"]
     local dependencyType = dependencyInfo["type"] or "object"
 
-    -- Load the dependency
-    local dependency
-    if (dependencyType == "globalVariable") then
-      dependency = _G[dependencyPath]
+    local dependencyMock
+    if (dependencyInfo["replaceWithoutLoading"]) then
+      dependencyMock = self:getMock({}, dependencyType, dependencyId .. "Mock")
+
     else
-      dependency = require(dependencyPath)
+      -- Load the dependency
+      local dependency
+
+      if (dependencyType == "globalVariable") then
+        dependency = _G[dependencyPath]
+      else
+        dependency = require(dependencyPath)
+      end
+
+      dependencyMock = self:getDependencyMock(dependency, dependencyId, dependencyType)
+
+      -- Backup the original dependency to be able to manually create more mocks from the dependency
+      self.originalDependencies[dependencyPath] = dependency
+
     end
 
-    local dependencyMock = self:getDependencyMock(dependency, dependencyId, dependencyType)
 
     -- Replace the dependency by the mock
     if (dependencyType == "globalVariable") then
@@ -340,8 +352,6 @@ function TestCase:initializeDependencyMocks()
     -- Save the mock to be able to use it in the tests
     self.dependencyMocks[dependencyId] = dependencyMock
 
-    -- Backup the original dependency to be able to manually create more mocks from the dependency
-    self.originalDependencies[dependencyPath] = dependency
   end
 
 end
