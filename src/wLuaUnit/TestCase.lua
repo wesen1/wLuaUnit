@@ -33,7 +33,7 @@ TestCase.testClass = nil
 
 ---
 -- The paths of the classes that the test class depends on
--- The list must be in the format { { id = <string>, path = <string>, [type = "object"|"table"] }, ... }
+-- The list must be in the format { { id = <string>, path = <string>, [type = "object"|"table"|"globalVariable"] }, ... }
 -- Every dependency will be mocked during each test's setup
 --
 -- @tfield table[] dependencyPaths
@@ -58,7 +58,7 @@ TestCase.originalLoadedPackages = nil
 
 ---
 -- The backup of the original global variables
--- The list is in the format { "variableName" = originalDependency }
+-- The list is in the format { "variableName" = originalValue }
 --
 -- @tfield table[] originalGlobalVariables
 --
