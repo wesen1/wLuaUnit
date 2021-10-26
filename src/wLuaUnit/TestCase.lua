@@ -236,7 +236,7 @@ function TestCase:createClassMock(_class, _mockName)
 
   local classMock = self:getMock(class, _mockName, "object")
   if (classMock.__call == nil) then
-    classMock.__call = self.mach.mock_method("__call")
+    classMock.__call = self.mach.mock_method(_mockName .. ".__call")
   end
 
   return setmetatable({}, {
